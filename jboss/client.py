@@ -7,15 +7,15 @@ from jboss.operation_error import OperationError
 
 class Client(object):
 
-    def __init__(self, username, password, address='127.0.0.1', port=9990,):
-        self.address = address
+    def __init__(self, username, password, host='127.0.0.1', port=9990,):
+        self.host = host
         self.port = port
         self.username = username
         self.password = password
 
     def _request(self, payload, unsafe=False):
         content_type_header = {'Content-Type': 'application/json'}
-        url = 'http://{}:{}/management'.format(self.address, self.port)
+        url = 'http://{}:{}/management'.format(self.host, self.port)
 
         response = requests.post(
             url,
