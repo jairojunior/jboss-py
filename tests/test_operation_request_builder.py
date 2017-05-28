@@ -23,18 +23,18 @@ def test_write_attribute_operation():
     request = OperationRequestBuilder().write('min-pool-size', 10).build()
 
     assert request == dict(
-            operation='write-attribute',
-            name='min-pool-size',
-            value=10,
-            address=[])
+        operation='write-attribute',
+        name='min-pool-size',
+        value=10,
+        address=[])
 
 
 def test_address_from_path():
     request = OperationRequestBuilder().address_from(
-            '/subsystem=datasources/data-source=DemoDS').build()
+        '/subsystem=datasources/data-source=DemoDS').build()
 
     assert request == dict(
-            address=[{'subsystem': 'datasources'}, {'data-source': 'DemoDS'}])
+        address=[{'subsystem': 'datasources'}, {'data-source': 'DemoDS'}])
 
 
 def test_target_server_group():
@@ -47,7 +47,7 @@ def test_content_src():
     request = OperationRequestBuilder().content('/tmp/hawtio.war').build()
 
     assert request == dict(content=[dict(
-            url='file:/tmp/hawtio.war')], address=[])
+        url='file:/tmp/hawtio.war')], address=[])
 
 
 def test_deployment_address():
@@ -70,20 +70,20 @@ def test_undeploy_without_server_group():
 
 def test_deploy_with_server_group():
     request = OperationRequestBuilder().target(
-                'main-server-group').deploy().build()
+        'main-server-group').deploy().build()
 
     assert request == dict(
-            operation='add',
-            address=[{'server-group': 'main-server-group'}])
+        operation='add',
+        address=[{'server-group': 'main-server-group'}])
 
 
 def test_undeploy_with_server_group():
     request = OperationRequestBuilder().target(
-                'main-server-group').undeploy().build()
+        'main-server-group').undeploy().build()
 
     assert request == dict(
-            operation='remove',
-            address=[{'server-group': 'main-server-group'}])
+        operation='remove',
+        address=[{'server-group': 'main-server-group'}])
 
 
 def test_composite_operation():
@@ -91,9 +91,9 @@ def test_composite_operation():
     deploy_operation = OperationRequestBuilder().deploy().build()
 
     request = OperationRequestBuilder().composite(
-                add_operation, deploy_operation).build()
+        [add_operation, deploy_operation]).build()
 
     assert request == dict(
-            address=[],
-            operation='composite',
-            steps=[add_operation, deploy_operation])
+        address=[],
+        operation='composite',
+        steps=[add_operation, deploy_operation])

@@ -1,7 +1,7 @@
 import json
 import requests
 from requests.auth import HTTPDigestAuth
-from jboss.operation_request_builder import OperationRequestBuilder
+import jboss.operation_request as op
 from jboss.operation_error import OperationError
 
 
@@ -29,12 +29,7 @@ class Client(object):
         return response
 
     def read(self, path):
-        payload = OperationRequestBuilder() \
-                    .address_from(path) \
-                    .read() \
-                    .build()
-
-        response = self._request(payload, True)
+        response = self._request(op.read(path), True)
 
         exists = response['outcome'] == 'success'
 
@@ -43,96 +38,35 @@ class Client(object):
         return exists, state
 
     def add(self, path, attributes):
-        payload = OperationRequestBuilder() \
-                    .address_from(path) \
-                    .add() \
-                    .payload(attributes) \
-                    .build() \
-
-        return self._request(payload)
+        return self._request(op.add(path, attributes))
 
     def remove(self, path):
-        payload = OperationRequestBuilder() \
-                    .address_from(path) \
-                    .remove() \
-                    .build() \
-
-        return self._request(payload)
+        return self._request(op.remove(path))
 
     def update(self, path, attributes):
         operations = []
         for name, value in attributes.items():
-            operation = OperationRequestBuilder() \
-                        .address_from(path) \
-                        .write(name, value) \
-                        .build()
+            operations.append(op.write_attribute(path, name, value))
 
-            operations.append(operation)
-
-        payload = OperationRequestBuilder().composite(*operations).build()
+        payload = op.composite(operations)
 
         return self._request(payload)
 
     def deploy(self, name, src, server_group=None):
-        add_content = OperationRequestBuilder() \
-            .deployment(name) \
-            .content(src) \
-            .add() \
-            .build() \
-
-        deploy = OperationRequestBuilder() \
-            .deploy() \
-            .deployment(name) \
-            .target(server_group) \
-            .build() \
-
-        payload = OperationRequestBuilder().composite(
-            add_content, deploy).build()
+        payload = op.composite(
+            op.deploy(name, src, server_group))
 
         return self._request(payload)
 
     def undeploy(self, name, server_group=None):
-        remove_content = OperationRequestBuilder() \
-            .deployment(name) \
-            .remove() \
-            .build() \
-
-        undeploy = OperationRequestBuilder() \
-            .undeploy() \
-            .deployment(name) \
-            .target(server_group) \
-            .build() \
-
-        payload = OperationRequestBuilder().composite(
-            undeploy, remove_content).build()
+        payload = op.composite(
+            op.undeploy(name, server_group))
 
         return self._request(payload)
 
     def update_deploy(self, name, src, server_group=None):
-        remove_content = OperationRequestBuilder() \
-            .deployment(name) \
-            .remove() \
-            .build() \
-
-        undeploy = OperationRequestBuilder() \
-            .undeploy() \
-            .deployment(name) \
-            .target(server_group) \
-            .build() \
-
-        add_content = OperationRequestBuilder() \
-            .deployment(name) \
-            .content(src) \
-            .add() \
-            .build() \
-
-        deploy = OperationRequestBuilder() \
-            .deploy() \
-            .deployment(name) \
-            .target(server_group) \
-            .build() \
-
-        payload = OperationRequestBuilder().composite(
-            undeploy, remove_content, add_content, deploy).build()
+        payload = op.composite(
+            op.deploy(name, src, server_group) +
+            op.undeploy(name, server_group))
 
         return self._request(payload)

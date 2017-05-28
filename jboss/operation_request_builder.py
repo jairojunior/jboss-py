@@ -21,23 +21,23 @@ class OperationRequestBuilder(object):
         self.detyped_request['value'] = value
         return self
 
+    def _no_target(self):
+        return self.detyped_request['address'] == []
+
+    def _operation(self, name):
+        self.detyped_request['operation'] = name
+
     def deploy(self):
-        if self.detyped_request['address'] == []:
-            self.detyped_request['operation'] = 'deploy'
-        else:
-            self.detyped_request['operation'] = 'add'
+        self._operation('deploy' if self._no_target() else 'add')
         return self
 
     def undeploy(self):
-        if self.detyped_request['address'] == []:
-            self.detyped_request['operation'] = 'undeploy'
-        else:
-            self.detyped_request['operation'] = 'remove'
+        self._operation('undeploy' if self._no_target() else 'remove')
         return self
 
-    def composite(self, *operations):
+    def composite(self, operations):
         self.detyped_request['operation'] = 'composite'
-        self.detyped_request['steps'] = list(operations)
+        self.detyped_request['steps'] = operations
         return self
 
     def content(self, src):
@@ -64,7 +64,7 @@ class OperationRequestBuilder(object):
     def target(self, server_group):
         if server_group is not None:
             self.detyped_request['address'].append(
-                    {'server-group': server_group})
+                {'server-group': server_group})
         return self
 
     def payload(self, attributes):
