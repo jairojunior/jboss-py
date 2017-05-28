@@ -1,11 +1,20 @@
+import pytest
 from jboss.client import Client
+from jboss.operation_error import OperationError
 
 
 def test_read():
     client = Client('python', 'python')
-    response = client.read('/subsystem=datasources/data-source=ExampleDS')
+    exists = client.read('/subsystem=datasources/data-source=ExampleDS')
 
-    assert response['outcome'] == 'success'
+    assert exists
+
+
+def test_read_non_existent_resource():
+    client = Client('python', 'python')
+    response = client.read('/subsystem=datasources/data-source=NonExistentDS')
+
+    assert response == (False, {})
 
 
 def test_add():
@@ -30,6 +39,12 @@ def test_remove():
     response = client.remove('/subsystem=datasources/data-source=DemoDS')
 
     assert response['outcome'] == 'success'
+
+
+def test_remove_non_existent_resource():
+    with pytest.raises(OperationError):
+        client = Client('python', 'python')
+        client.remove('/subsystem=datasources/data-source=NonExistenteDS')
 
 
 def test_deploy():

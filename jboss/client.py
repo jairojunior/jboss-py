@@ -2,6 +2,7 @@ import json
 import requests
 from requests.auth import HTTPDigestAuth
 from jboss.operation_request_builder import OperationRequestBuilder
+from jboss.operation_error import OperationError
 
 
 class Client(object):
@@ -12,15 +13,20 @@ class Client(object):
         self.username = username
         self.password = password
 
-    def _request(self, payload):
+    def _request(self, payload, unsafe=False):
         content_type_header = {'Content-Type': 'application/json'}
-        url = 'http://' + self.address + ':' + str(self.port) + '/management'
+        url = 'http://{}:{}/management'.format(self.address, self.port)
 
-        return requests.post(
+        response = requests.post(
             url,
             data=json.dumps(payload),
             headers=content_type_header,
-            auth=HTTPDigestAuth(self.username, self.password))
+            auth=HTTPDigestAuth(self.username, self.password)).json()
+
+        if response['outcome'] == 'failed' and not unsafe:
+            raise OperationError(response['failure-description'])
+
+        return response
 
     def read(self, path):
         payload = OperationRequestBuilder() \
@@ -28,7 +34,13 @@ class Client(object):
                     .read() \
                     .build()
 
-        return self._request(payload).json()
+        response = self._request(payload, True)
+
+        exists = response['outcome'] == 'success'
+
+        state = response['result'] if exists else {}
+
+        return exists, state
 
     def add(self, path, attributes):
         payload = OperationRequestBuilder() \
@@ -37,7 +49,7 @@ class Client(object):
                     .payload(attributes) \
                     .build() \
 
-        return self._request(payload).json()
+        return self._request(payload)
 
     def remove(self, path):
         payload = OperationRequestBuilder() \
@@ -45,7 +57,7 @@ class Client(object):
                     .remove() \
                     .build() \
 
-        return self._request(payload).json()
+        return self._request(payload)
 
     def update(self, path, attributes):
         operations = []
@@ -57,9 +69,9 @@ class Client(object):
 
             operations.append(operation)
 
-        payload = OperationRequestBuilder().composite(operations).build()
+        payload = OperationRequestBuilder().composite(*operations).build()
 
-        return self._request(payload).json()
+        return self._request(payload)
 
     def deploy(self, name, src, server_group=None):
         add_content = OperationRequestBuilder() \
@@ -77,7 +89,7 @@ class Client(object):
         payload = OperationRequestBuilder().composite(
             add_content, deploy).build()
 
-        return self._request(payload).json()
+        return self._request(payload)
 
     def undeploy(self, name, server_group=None):
         remove_content = OperationRequestBuilder() \
@@ -94,7 +106,7 @@ class Client(object):
         payload = OperationRequestBuilder().composite(
             undeploy, remove_content).build()
 
-        return self._request(payload).json()
+        return self._request(payload)
 
     def update_deploy(self, name, src, server_group=None):
         remove_content = OperationRequestBuilder() \
@@ -123,4 +135,4 @@ class Client(object):
         payload = OperationRequestBuilder().composite(
             undeploy, remove_content, add_content, deploy).build()
 
-        return self._request(payload).json()
+        return self._request(payload)

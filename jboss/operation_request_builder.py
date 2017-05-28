@@ -45,14 +45,14 @@ class OperationRequestBuilder(object):
         return self
 
     def address_from(self, path):
-        # Use regex
+        # Use regex: /node-type=node-name (/node-type=node-name)*
         tokens = path.split('/')
 
         address = []
 
         for token in tokens[1:]:
-            node_type, node_value = token.split('=')
-            address.append({node_type: node_value})
+            node_type, node_name = token.split('=')
+            address.append({node_type: node_name})
 
         self.detyped_request['address'] = address
         return self
