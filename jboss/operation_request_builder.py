@@ -44,6 +44,11 @@ class OperationRequestBuilder(object):
         self.detyped_request['content'] = [dict(url='file:' + src)]
         return self
 
+    def content_reference(self, bytes_value):
+        self.detyped_request['content'] = [
+            {'hash': {'BYTES_VALUE': bytes_value}}]
+        return self
+
     def address_from(self, path):
         # Use regex: /node-type=node-name (/node-type=node-name)*
         tokens = path.split('/')

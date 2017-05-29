@@ -56,13 +56,13 @@ def test_deployment_address():
     assert request == dict(address=[dict(deployment='hawtio.war')])
 
 
-def test_deploy_without_server_group():
+def test_deploy_no_server_group():
     request = OperationRequestBuilder().target(None).deploy().build()
 
     assert request == dict(operation='deploy', address=[])
 
 
-def test_undeploy_without_server_group():
+def test_undeploy_no_server_group():
     request = OperationRequestBuilder().undeploy().build()
 
     assert request == dict(operation='undeploy', address=[])

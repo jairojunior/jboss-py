@@ -7,26 +7,34 @@ from jboss.operation_error import OperationError
 
 class Client(object):
 
-    def __init__(self, username, password, host='127.0.0.1', port=9990,):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
+    def __init__(self, username, password, host='127.0.0.1', port=9990):
+        self.url = 'http://{}:{}/management'.format(host, port)
+        self.auth = HTTPDigestAuth(username, password)
 
     def _request(self, payload, unsafe=False):
         content_type_header = {'Content-Type': 'application/json'}
-        url = 'http://{}:{}/management'.format(self.host, self.port)
 
         response = requests.post(
-            url,
+            self.url,
             data=json.dumps(payload),
             headers=content_type_header,
-            auth=HTTPDigestAuth(self.username, self.password)).json()
+            auth=self.auth).json()
 
         if response['outcome'] == 'failed' and not unsafe:
             raise OperationError(response['failure-description'])
 
         return response
+
+    def _upload(self, src):
+        response = requests.post(
+            self.url + '/add-content',
+            auth=self.auth,
+            files=dict(file=open(src))).json()
+
+        if response['outcome'] == 'failed':
+            raise OperationError(response['failure-description'])
+
+        return response['result']['BYTES_VALUE']
 
     def read(self, path):
         response = self._request(op.read(path), True)
@@ -52,9 +60,13 @@ class Client(object):
 
         return self._request(payload)
 
-    def deploy(self, name, src, server_group=None):
-        payload = op.composite(
-            op.deploy(name, src, server_group))
+    def deploy(self, name, src, remote_src, server_group=None):
+        if remote_src:
+            payload = op.composite(
+                op.deploy(name, src, server_group))
+        else:
+            bytes_value = self._upload(src)
+            payload = op.deploy_only(name, bytes_value, server_group)
 
         return self._request(payload)
 
@@ -64,9 +76,12 @@ class Client(object):
 
         return self._request(payload)
 
-    def update_deploy(self, name, src, server_group=None):
-        payload = op.composite(
-            op.deploy(name, src, server_group) +
-            op.undeploy(name, server_group))
+    def update_deploy(self, name, src, remote_src, server_group=None):
+        if remote_src:
+            operations = op.undeploy(name, server_group) + op.deploy(name, src, server_group)
+            payload = op.composite(operations)
 
-        return self._request(payload)
+            return self._request(payload)
+
+        self._request(op.remove('/deployment=' + name))
+        return self.deploy(name, src, remote_src, server_group)

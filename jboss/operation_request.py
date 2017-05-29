@@ -42,12 +42,22 @@ def deploy(name, src, server_group):
         .build()
 
     deploy_operation = OperationRequestBuilder() \
+        .target(server_group) \
         .deploy() \
         .deployment(name) \
-        .target(server_group) \
         .build()
 
     return [add_content, deploy_operation]
+
+
+def deploy_only(name, bytes_value, server_group):
+    return OperationRequestBuilder() \
+            .content_reference(bytes_value) \
+            .target(server_group) \
+            .add() \
+            .payload({'enabled': True}) \
+            .deployment(name) \
+            .build()
 
 
 def undeploy(name, server_group):
@@ -57,9 +67,9 @@ def undeploy(name, server_group):
         .build()
 
     undeploy_operation = OperationRequestBuilder() \
+        .target(server_group) \
         .undeploy() \
         .deployment(name) \
-        .target(server_group) \
         .build()
 
     return [undeploy_operation, remove_content]

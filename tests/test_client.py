@@ -1,25 +1,27 @@
+import os
+import time
+import requests
 import pytest
 import docker
-import time
 from jboss.client import Client
 from jboss.operation_error import OperationError
 
 
 @pytest.fixture(scope='session', autouse=True)
 def wildfly_container():
-    client = docker.from_env()
-    client.images.build(fileobj=open('Dockerfile'), tag='jboss-py')
+    docker_client = docker.from_env()
+    docker_client.images.build(fileobj=open('Dockerfile'), tag='jboss-py')
 
-    client.containers.run('jboss-py',
-                          ports={9990: 9990},
-                          name='jboss-py-test',
-                          detach=True)
+    docker_client.containers.run('jboss-py',
+                                 ports={9990: 9990},
+                                 name='jboss-py-test',
+                                 detach=True)
     time.sleep(10)
 
     yield
 
-    client.containers.get('jboss-py-test').stop()
-    client.containers.get('jboss-py-test').remove()
+    docker_client.containers.get('jboss-py-test').stop()
+    docker_client.containers.get('jboss-py-test').remove()
 
 
 @pytest.fixture
@@ -61,17 +63,55 @@ def test_remove(client):
     assert response['outcome'] == 'success'
 
 
-def test_remove_non_existent_resource(client):
-    with pytest.raises(OperationError):
-        client.remove('/subsystem=datasources/data-source=NonExistenteDS')
+def test_upload_is_idempotent(client):
+    client._upload(os.getcwd() + '/README.rst')
+    response = client._upload(os.getcwd() + '/README.rst')
+
+    assert response == 'Qx6VBlPmESKVBU+ZEfKGaYKDpoQ='
 
 
-def test_deploy(client):
-    response = client.deploy('hawtio.war', '/tmp/hawtio.war')
+def test_deploy_with_upload(client):
+    deployment = requests.get(
+        'https://github.com/jairojunior/wildfly-ha-tcpgossip-vagrant-puppet/raw/master/cluster-demo.war')
+
+    with open('/tmp/cluster-demo.war', 'w') as file:
+        file.write(deployment.content)
+
+    response = client.deploy(
+        name='cluster-demo.war',
+        src='/tmp/cluster-demo.war',
+        remote_src=False)
 
     assert response['outcome'] == 'success'
 
 
-@pytest.yield_fixture(scope='session', autouse=True)
-def clean_up_container():
-    print 'After?'
+def test_update_deploy_with_upload(client):
+    response = client.update_deploy(
+        name='cluster-demo.war',
+        src='/tmp/cluster-demo.war',
+        remote_src=False)
+
+    assert response['outcome'] == 'success'
+
+
+def test_remove_absent_resource(client):
+    with pytest.raises(OperationError):
+        client.remove('/subsystem=datasources/data-source=NonExistentDS')
+
+
+def test_deploy(client):
+    response = client.deploy(
+        name='hawtio.war',
+        src='/tmp/hawtio.war',
+        remote_src=True)
+
+    assert response['outcome'] == 'success'
+
+
+def test_update_deploy(client):
+    response = client.update_deploy(
+        name='hawtio.war',
+        src='/tmp/hawtio.war',
+        remote_src=True)
+
+    assert response['outcome'] == 'success'
