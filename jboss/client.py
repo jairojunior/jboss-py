@@ -8,7 +8,7 @@ from jboss.operation_error import OperationError
 class Client(object):
 
     def __init__(self, username, password, host='127.0.0.1', port=9990):
-        self.url = 'http://{}:{}/management'.format(host, port)
+        self.url = 'http://{0}:{1}/management'.format(host, port)
         self.auth = HTTPDigestAuth(username, password)
 
     def _request(self, payload, unsafe=False):
