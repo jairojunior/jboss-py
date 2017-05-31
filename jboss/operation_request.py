@@ -2,74 +2,77 @@ from jboss.operation_request_builder import OperationRequestBuilder
 
 
 def read(path):
-    return OperationRequestBuilder() \
-                .address_from(path) \
-                .read() \
-                .build()
+    builder = OperationRequestBuilder()
+    builder.address_from(path)
+    builder.read()
+    return builder.build()
 
 
 def add(path, attributes):
-    return OperationRequestBuilder() \
-                .address_from(path) \
-                .add() \
-                .payload(attributes) \
-                .build()
+    builder = OperationRequestBuilder()
+    builder.address_from(path)
+    builder.add()
+    builder.payload(attributes)
+    return builder.build()
 
 
 def remove(path):
-    return OperationRequestBuilder() \
-                .address_from(path) \
-                .remove() \
-                .build()
+    builder = OperationRequestBuilder()
+    builder.address_from(path)
+    builder.remove()
+    return builder.build()
 
 
 def write_attribute(path, name, value):
-    return OperationRequestBuilder() \
-                .address_from(path) \
-                .write(name, value) \
-                .build()
+    builder = OperationRequestBuilder()
+    builder.address_from(path)
+    builder.write(name, value)
+    return builder.build()
 
 
 def composite(operations):
-    return OperationRequestBuilder().composite(operations).build()
+    builder = OperationRequestBuilder()
+    builder.composite(operations)
+    return builder.build()
 
 
 def deploy(name, src, server_group):
-    add_content = OperationRequestBuilder() \
-        .deployment(name) \
-        .content(src) \
-        .add() \
-        .build()
+    add_builder = OperationRequestBuilder()
+    add_builder.deployment(name)
+    add_builder.content(src)
+    add_builder.add()
+    add_content = add_builder.build()
 
-    deploy_operation = OperationRequestBuilder() \
-        .target(server_group) \
-        .deploy() \
-        .deployment(name) \
-        .build()
+    deploy_builder = OperationRequestBuilder()
+    deploy_builder.target(server_group)
+    deploy_builder.deploy()
+    deploy_builder.deployment(name)
+    deploy_operation = deploy_builder.build()
 
     return [add_content, deploy_operation]
 
 
 def deploy_only(name, bytes_value, server_group):
-    return OperationRequestBuilder() \
-            .content_reference(bytes_value) \
-            .target(server_group) \
-            .add() \
-            .payload({'enabled': True}) \
-            .deployment(name) \
-            .build()
+    builder = OperationRequestBuilder()
+    builder.content_reference(bytes_value)
+    builder.target(server_group)
+    builder.add()
+    builder.payload(dict(enabled=True))
+    builder.deployment(name)
+
+    return builder.build()
 
 
 def undeploy(name, server_group):
-    remove_content = OperationRequestBuilder() \
-        .deployment(name) \
-        .remove() \
-        .build()
+    builder = OperationRequestBuilder()
+    builder.deployment(name)
+    builder.remove()
+    remove_content = builder.build()
 
-    undeploy_operation = OperationRequestBuilder() \
-        .target(server_group) \
-        .undeploy() \
-        .deployment(name) \
-        .build()
+    builder = OperationRequestBuilder()
+    builder.target(server_group)
+    builder.undeploy()
+    builder.deployment(name)
+    undeploy_operation = builder.build()
 
     return [undeploy_operation, remove_content]
