@@ -13,6 +13,15 @@ class Client(object):
         self.timeout = timeout
         self.headers = {'operation-headers': headers}
 
+    @classmethod
+    def from_config(cls, params):
+        return cls(params['username'],
+                   params['password'],
+                   params['host'],
+                   params['port'],
+                   params['timeout'],
+                   params['operation_headers'])
+
     def _request(self, payload, unsafe=False):
         content_type_header = {'Content-Type': 'application/json'}
 
