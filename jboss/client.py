@@ -7,18 +7,24 @@ from jboss.operation_error import OperationError
 
 class Client(object):
 
-    def __init__(self, username, password, host='127.0.0.1', port=9990):
+    def __init__(self, username, password, host='127.0.0.1', port=9990, timeout=300, headers=None):
         self.url = 'http://{0}:{1}/management'.format(host, port)
         self.auth = HTTPDigestAuth(username, password)
+        self.timeout = timeout
+        self.headers = {'operation-headers': headers}
 
     def _request(self, payload, unsafe=False):
         content_type_header = {'Content-Type': 'application/json'}
+
+        if self.headers['operation-headers'] and not payload['operation'] == 'read-resource':
+            payload.update(self.headers)
 
         response = requests.post(
             self.url,
             data=json.dumps(payload),
             headers=content_type_header,
-            auth=self.auth).json()
+            auth=self.auth,
+            timeout=self.timeout).json()
 
         if response['outcome'] == 'failed' and not unsafe:
             raise OperationError(response['failure-description'])
@@ -29,7 +35,8 @@ class Client(object):
         response = requests.post(
             self.url + '/add-content',
             auth=self.auth,
-            files=dict(file=open(src))).json()
+            files=dict(file=open(src)),
+            timeout=self.timeout).json()
 
         if response['outcome'] == 'failed':
             raise OperationError(response['failure-description'])

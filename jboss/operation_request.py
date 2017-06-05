@@ -6,7 +6,6 @@ def execute(operation, parameters, path):
     builder.address_from(path)
     builder.payload(parameters)
     builder.operation(operation)
-
     return builder.build()
 
 
@@ -68,7 +67,6 @@ def deploy_only(name, bytes_value, server_group):
     builder.add()
     builder.payload(dict(enabled=True))
     builder.deployment(name)
-
     return builder.build()
 
 
