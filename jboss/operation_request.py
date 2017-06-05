@@ -1,6 +1,15 @@
 from jboss.operation_request_builder import OperationRequestBuilder
 
 
+def execute(operation, parameters, path):
+    builder = OperationRequestBuilder()
+    builder.address_from(path)
+    builder.payload(parameters)
+    builder.operation(operation)
+
+    return builder.build()
+
+
 def read(path):
     builder = OperationRequestBuilder()
     builder.address_from(path)

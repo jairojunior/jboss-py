@@ -20,14 +20,14 @@ class OperationRequestBuilder(object):
     def _no_target(self):
         return self.detyped_request['address'] == []
 
-    def _operation(self, name):
+    def operation(self, name):
         self.detyped_request['operation'] = name
 
     def deploy(self):
-        self._operation('deploy' if self._no_target() else 'add')
+        self.operation('deploy' if self._no_target() else 'add')
 
     def undeploy(self):
-        self._operation('undeploy' if self._no_target() else 'remove')
+        self.operation('undeploy' if self._no_target() else 'remove')
 
     def composite(self, operations):
         self.detyped_request['operation'] = 'composite'
@@ -41,16 +41,17 @@ class OperationRequestBuilder(object):
             {'hash': {'BYTES_VALUE': bytes_value}}]
 
     def address_from(self, path):
-        # Use regex: /node-type=node-name (/node-type=node-name)*
-        tokens = path.split('/')
+        if path is not None:
+            # Use regex: /node-type=node-name (/node-type=node-name)*
+            tokens = path.split('/')
 
-        address = []
+            address = []
 
-        for token in tokens[1:]:
-            node_type, node_name = token.split('=')
-            address.append({node_type: node_name})
+            for token in tokens[1:]:
+                node_type, node_name = token.split('=')
+                address.append({node_type: node_name})
 
-        self.detyped_request['address'] = address
+            self.detyped_request['address'] = address
 
     def deployment(self, name):
         self.detyped_request['address'].append(dict(deployment=name))

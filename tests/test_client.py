@@ -29,8 +29,16 @@ def client():
     return Client('python', 'python0!')
 
 
+def test_execute(client):
+    response = client.execute(operation='read-attribute',
+                              parameters=dict(name='enabled'),
+                              ignore_failed_outcome=False,
+                              path='/subsystem=datasources/data-source=ExampleDS')
+
+    assert response['result']
+
 def test_read(client):
-    exists = client.read('/subsystem=datasources/data-source=ExampleDS')
+    exists, _ = client.read('/subsystem=datasources/data-source=ExampleDS')
 
     assert exists
 

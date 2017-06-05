@@ -36,6 +36,11 @@ class Client(object):
 
         return response['result']['BYTES_VALUE']
 
+    def execute(self, operation, parameters, ignore_failed_outcome, path=None):
+        payload = op.execute(operation, parameters, path)
+
+        return self._request(payload, ignore_failed_outcome)
+
     def read(self, path):
         response = self._request(op.read(path), True)
 
