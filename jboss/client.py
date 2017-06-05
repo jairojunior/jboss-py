@@ -2,7 +2,8 @@ import json
 import requests
 from requests.auth import HTTPDigestAuth
 import jboss.operation_request as op
-from jboss.operation_error import OperationError
+from jboss.exceptions import OperationError
+from jboss.exceptions import AuthError
 
 
 class Client(object):
@@ -33,7 +34,12 @@ class Client(object):
             data=json.dumps(payload),
             headers=content_type_header,
             auth=self.auth,
-            timeout=self.timeout).json()
+            timeout=self.timeout)
+
+        if response.status_code == 401:
+            raise AuthError('Invalid credentials.')
+
+        response = response.json()
 
         if response['outcome'] == 'failed' and not unsafe:
             raise OperationError(response['failure-description'])

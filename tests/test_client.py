@@ -4,7 +4,8 @@ import requests
 import pytest
 import docker
 from jboss.client import Client
-from jboss.operation_error import OperationError
+from jboss.exceptions import AuthError
+from jboss.exceptions import OperationError
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -28,6 +29,12 @@ def wildfly_container():
 def client():
     return Client('python', 'python0!')
 
+
+def test_auth_error():
+    client = Client('username', 'wrong_password')
+
+    with pytest.raises(AuthError):
+        client.read('/subsystem=datasources/data-source=ExampleDS')
 
 def test_execute(client):
     response = client.execute(operation='read-attribute',
