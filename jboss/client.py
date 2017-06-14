@@ -1,16 +1,17 @@
 import json
-import requests
-from requests.auth import HTTPDigestAuth
+import atexit
+import mmap
+from ansible.module_utils.urls import open_url
 import jboss.operation_request as op
 from jboss.exceptions import OperationError
-from jboss.exceptions import AuthError
 
 
 class Client(object):
 
     def __init__(self, username, password, host='127.0.0.1', port=9990, timeout=300, headers=None):
         self.url = 'http://{0}:{1}/management'.format(host, port)
-        self.auth = HTTPDigestAuth(username, password)
+        self.username = username
+        self.password = password
         self.timeout = timeout
         self.headers = {'operation-headers': headers}
 
@@ -29,17 +30,19 @@ class Client(object):
         if self.headers['operation-headers'] and not payload['operation'] == 'read-resource':
             payload.update(self.headers)
 
-        response = requests.post(
-            self.url,
-            data=json.dumps(payload),
-            headers=content_type_header,
-            auth=self.auth,
-            timeout=self.timeout)
+        response = open_url(
+                self.url,
+                data=json.dumps(payload),
+                headers=content_type_header,
+                method='POST',
+                use_proxy=False,
+                url_username=self.username,
+                url_password=self.password,
+                auth_realm='ManagementRealm',
+                timeout=self.timeout,
+                follow_redirects=True)
 
-        if response.status_code == 401:
-            raise AuthError('Invalid credentials.')
-
-        response = response.json()
+        response = json.loads(response.read())
 
         if response['outcome'] == 'failed' and not unsafe:
             raise OperationError(response['failure-description'])
@@ -47,11 +50,30 @@ class Client(object):
         return response
 
     def _upload(self, src):
-        response = requests.post(
-            self.url + '/add-content',
-            auth=self.auth,
-            files=dict(file=open(src)),
-            timeout=self.timeout).json()
+        fd = open(src, "rb")
+        atexit.register(fd.close)
+
+        data = mmap.mmap(fd.fileno(), 0, access=mmap.ACCESS_READ)
+        atexit.register(data.close)
+
+        headers = {
+            "Content-Type": "multipart/form-data",
+            "Content-Length": str(len(data)),
+        }
+
+        response = open_url(
+                self.url,
+                data=data,
+                headers=headers,
+                method='POST',
+                use_proxy=False,
+                url_username=self.username,
+                url_password=self.password,
+                auth_realm='ManagementRealm',
+                timeout=self.timeout,
+                follow_redirects=True)
+
+        response = json.loads(response.read())
 
         if response['outcome'] == 'failed':
             raise OperationError(response['failure-description'])
