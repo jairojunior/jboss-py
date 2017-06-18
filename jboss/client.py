@@ -1,7 +1,7 @@
 import json
 from ansible.module_utils.urls import open_url
-from ansible.module_utils.six.moves.urllib.error import HTTPError
 import jboss.operation_request as op
+from ansible.module_utils.six.moves.urllib.error import HTTPError
 from jboss.exceptions import AuthError
 from jboss.exceptions import OperationError
 
@@ -48,7 +48,7 @@ class Client(object):
                 raise AuthError('Invalid credentials')
 
             if err.getcode() == 500:
-                api_response = json.loads(err.read())
+                api_response = json.loads(err.read().decode('utf-8'))
 
                 if not unsafe:
                     raise OperationError(api_response['failure-description'])
@@ -57,7 +57,7 @@ class Client(object):
 
             raise
 
-        return json.loads(response.read())
+        return json.loads(response.read().decode('utf-8'))
 
     def execute(self, operation, parameters, ignore_failed_outcome, path=None):
         payload = op.execute(operation, parameters, path)
