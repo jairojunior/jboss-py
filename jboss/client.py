@@ -1,8 +1,8 @@
 import json
-import atexit
-import mmap
 from ansible.module_utils.urls import open_url
 import jboss.operation_request as op
+from urllib2 import HTTPError
+from jboss.exceptions import AuthError
 from jboss.exceptions import OperationError
 
 
@@ -30,55 +30,34 @@ class Client(object):
         if self.headers['operation-headers'] and not payload['operation'] == 'read-resource':
             payload.update(self.headers)
 
-        response = open_url(
-                self.url,
-                data=json.dumps(payload),
-                headers=content_type_header,
-                method='POST',
-                use_proxy=False,
-                url_username=self.username,
-                url_password=self.password,
-                auth_realm='ManagementRealm',
-                timeout=self.timeout,
-                follow_redirects=True)
+        try:
+            response = open_url(
+                    self.url,
+                    data=json.dumps(payload),
+                    headers=content_type_header,
+                    method='POST',
+                    use_proxy=False,
+                    url_username=self.username,
+                    url_password=self.password,
+                    auth_realm='ManagementRealm',
+                    timeout=self.timeout,
+                    follow_redirects=True)
 
-        response = json.loads(response.read())
+        except HTTPError as err:
+            if err.getcode() == 401:
+                raise AuthError('Invalid credentials')
 
-        if response['outcome'] == 'failed' and not unsafe:
-            raise OperationError(response['failure-description'])
+            if err.getcode() == 500:
+                api_response = json.loads(err.read())
 
-        return response
+                if not unsafe:
+                    raise OperationError(api_response['failure-description'])
+                else:
+                    return api_response
 
-    def _upload(self, src):
-        fd = open(src, "rb")
-        atexit.register(fd.close)
+            raise
 
-        data = mmap.mmap(fd.fileno(), 0, access=mmap.ACCESS_READ)
-        atexit.register(data.close)
-
-        headers = {
-            "Content-Type": "multipart/form-data",
-            "Content-Length": str(len(data)),
-        }
-
-        response = open_url(
-                self.url,
-                data=data,
-                headers=headers,
-                method='POST',
-                use_proxy=False,
-                url_username=self.username,
-                url_password=self.password,
-                auth_realm='ManagementRealm',
-                timeout=self.timeout,
-                follow_redirects=True)
-
-        response = json.loads(response.read())
-
-        if response['outcome'] == 'failed':
-            raise OperationError(response['failure-description'])
-
-        return response['result']['BYTES_VALUE']
+        return json.loads(response.read())
 
     def execute(self, operation, parameters, ignore_failed_outcome, path=None):
         payload = op.execute(operation, parameters, path)
@@ -109,13 +88,9 @@ class Client(object):
 
         return self._request(payload)
 
-    def deploy(self, name, src, remote_src, server_group=None):
-        if remote_src:
-            payload = op.composite(
-                op.deploy(name, src, server_group))
-        else:
-            bytes_value = self._upload(src)
-            payload = op.deploy_only(name, bytes_value, server_group)
+    def deploy(self, name, src, server_group=None):
+        payload = op.composite(
+            op.deploy(name, src, server_group))
 
         return self._request(payload)
 
@@ -125,12 +100,8 @@ class Client(object):
 
         return self._request(payload)
 
-    def update_deploy(self, name, src, remote_src, server_group=None):
-        if remote_src:
-            operations = op.undeploy(name, server_group) + op.deploy(name, src, server_group)
-            payload = op.composite(operations)
+    def update_deploy(self, name, src, server_group=None):
+        operations = op.undeploy(name, server_group) + op.deploy(name, src, server_group)
+        payload = op.composite(operations)
 
-            return self._request(payload)
-
-        self._request(op.remove('/deployment=' + name))
-        return self.deploy(name, src, remote_src, server_group)
+        return self._request(payload)

@@ -1,6 +1,4 @@
-import os
 import time
-import requests
 import pytest
 import docker
 from jboss.client import Client
@@ -36,6 +34,7 @@ def test_auth_error():
     with pytest.raises(AuthError):
         client.read('/subsystem=datasources/data-source=ExampleDS')
 
+
 def test_execute(client):
     response = client.execute(operation='read-attribute',
                               parameters=dict(name='enabled'),
@@ -43,6 +42,7 @@ def test_execute(client):
                               path='/subsystem=datasources/data-source=ExampleDS')
 
     assert response['result']
+
 
 def test_read(client):
     exists, _ = client.read('/subsystem=datasources/data-source=ExampleDS')
@@ -78,37 +78,6 @@ def test_remove(client):
     assert response['outcome'] == 'success'
 
 
-def test_upload_is_idempotent(client):
-    client._upload(os.getcwd() + '/README.rst')
-    response = client._upload(os.getcwd() + '/README.rst')
-
-    assert response == 'Qx6VBlPmESKVBU+ZEfKGaYKDpoQ='
-
-
-def test_deploy_with_upload(client):
-    deployment = requests.get(
-        'https://github.com/jairojunior/wildfly-ha-tcpgossip-vagrant-puppet/raw/master/cluster-demo.war')
-
-    with open('/tmp/cluster-demo.war', 'w') as file:
-        file.write(deployment.content)
-
-    response = client.deploy(
-        name='cluster-demo.war',
-        src='/tmp/cluster-demo.war',
-        remote_src=False)
-
-    assert response['outcome'] == 'success'
-
-
-def test_update_deploy_with_upload(client):
-    response = client.update_deploy(
-        name='cluster-demo.war',
-        src='/tmp/cluster-demo.war',
-        remote_src=False)
-
-    assert response['outcome'] == 'success'
-
-
 def test_remove_absent_resource(client):
     with pytest.raises(OperationError):
         client.remove('/subsystem=datasources/data-source=NonExistentDS')
@@ -117,8 +86,7 @@ def test_remove_absent_resource(client):
 def test_deploy(client):
     response = client.deploy(
         name='hawtio.war',
-        src='/tmp/hawtio.war',
-        remote_src=True)
+        src='/tmp/hawtio.war')
 
     assert response['outcome'] == 'success'
 
@@ -126,7 +94,6 @@ def test_deploy(client):
 def test_update_deploy(client):
     response = client.update_deploy(
         name='hawtio.war',
-        src='/tmp/hawtio.war',
-        remote_src=True)
+        src='/tmp/hawtio.war')
 
     assert response['outcome'] == 'success'
