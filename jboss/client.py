@@ -1,7 +1,7 @@
 import json
 from ansible.module_utils.urls import open_url
+from ansible.module_utils.six.moves.urllib.error import HTTPError
 import jboss.operation_request as op
-from urllib2 import HTTPError
 from jboss.exceptions import AuthError
 from jboss.exceptions import OperationError
 
