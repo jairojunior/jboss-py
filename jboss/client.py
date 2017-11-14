@@ -93,7 +93,13 @@ class Client(object):
                 op.deploy(name, src, server_group))
         else:
             bytes_value = self._upload(src)
-            payload = op.deploy_only(name, bytes_value, server_group)
+
+            if server_group:
+                add_deployment = op.add_deployment(name, bytes_value)
+                assign = op.assign(name, server_group)
+                payload = op.composite([add_deployment, assign])
+            else:
+                payload = op.add_deployment(name, bytes_value, enabled=True)
 
         return self._request(payload)
 

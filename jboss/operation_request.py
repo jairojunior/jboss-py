@@ -52,6 +52,9 @@ def deploy(name, src, server_group):
     add_content = add_builder.build()
 
     deploy_builder = OperationRequestBuilder()
+    if server_group:
+        deploy_builder.payload({'enabled': True})
+
     deploy_builder.target(server_group)
     deploy_builder.deploy()
     deploy_builder.deployment(name)
@@ -60,13 +63,20 @@ def deploy(name, src, server_group):
     return [add_content, deploy_operation]
 
 
-def deploy_only(name, bytes_value, server_group):
+def add_deployment(name, bytes_value, enabled=False):
     builder = OperationRequestBuilder()
     builder.content_reference(bytes_value)
-    builder.target(server_group)
     builder.add()
-    builder.payload(dict(enabled=True))
     builder.deployment(name)
+    builder.payload({'enabled': enabled})
+    return builder.build()
+
+def assign(name, server_group):
+    builder = OperationRequestBuilder()
+    builder.target(server_group)
+    builder.deploy()
+    builder.deployment(name)
+    builder.payload({'enabled': True})
     return builder.build()
 
 
